@@ -1,0 +1,15 @@
+alias ls='ls -GFh'
+alias p='vendor/bin/phpunit';
+alias cda='~/Sites/nursegridapi'
+alias cs="php vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php  --diff --allow-risky=yes";
+alias phanall="php vendor/bin/phan --progress-bar  -k.phan/config.php -C"
+alias phan="php vendor/bin/phan --progress-bar -k.phan/config.php -C --include-analysis-file-list=\$(git diff --name-only | sed -e 'H;\${x;s/\n/,/g;s/^,//;p;};d')"
+alias sup="sail up -d"
+alias dockroot="docker exec -u root -t -i nursegridapi /bin/bash"
+alias confluent="~/bin/confluent"
+alias sail='[ -f sail ] && sh sail || sh vendor/bin/sail'
+alias san='sail artisan'
+alias swd='sail artisan env:switch development'
+alias swl='sail artisan env:switch docker'
+alias sws='sail artisan env:switch stage'
+alias gco='git checkout -'
