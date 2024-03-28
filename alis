@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Define the directory where your scripts and aliases are located
+SCRIPTS_DIR="$(dirname "$0")/bin"
+
+# If --help is passed as an argument, or no args are supplied, display the help message
+if [ "$1" == "--help" ] || [ -z "$1" ]; then
+
+
+  echo "Usage: alis <script> [args]"
+  echo "Available scripts:"
+  for script in "$SCRIPTS_DIR"/*.sh; do
+    script_name=$(basename "$script" .sh)
+    echo "  $script_name"
+  done
+  exit 0
+fi
+
+
+# Special case for loading aliases
+if [ "$1" == "aliases" ]; then
+  source_aliases
+  exit 0
+fi
+
+# Rest of the script execution logic remains the same
+SCRIPT_NAME="$1.sh"
+shift  # Remove the first argument, leaving any additional arguments
+
+# Check if the script exists
+if [ ! -f "$SCRIPTS_DIR/$SCRIPT_NAME" ]; then
+  echo "Error: script '$SCRIPT_NAME' does not exist."
+  exit 1
+fi
+
+# Execute the script with any additional arguments
+"$SCRIPTS_DIR/$SCRIPT_NAME" "$@"
