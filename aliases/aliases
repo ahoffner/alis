@@ -1,15 +1,64 @@
+## Regular Aliases
+### Run alis list to view in terminal
+
+# Switch ls to default to also show file sizes and colors
 alias ls='ls -GFh'
-alias p='vendor/bin/phpunit';
-alias cda='~/Sites/nursegridapi'
-alias cs="php vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php  --diff --allow-risky=yes";
-alias phanall="php vendor/bin/phan --progress-bar  -k.phan/config.php -C"
-alias phan="php vendor/bin/phan --progress-bar -k.phan/config.php -C --include-analysis-file-list=\$(git diff --name-only | sed -e 'H;\${x;s/\n/,/g;s/^,//;p;};d')"
-alias sup="sail up -d"
-alias dockroot="docker exec -u root -t -i nursegridapi /bin/bash"
-alias confluent="~/bin/confluent"
-alias sail='[ -f sail ] && sh sail || sh vendor/bin/sail'
-alias san='sail artisan'
-alias swd='sail artisan env:switch development'
-alias swl='sail artisan env:switch docker'
-alias sws='sail artisan env:switch stage'
+
+## Git
+# Checkout the last branch you were on
 alias gco='git checkout -'
+# Checkout a branch and pull it
+alias gc='git checkout $1 && git pull'
+
+## Docker
+# Open a shell in the docker container as the root user
+alias dockroot="docker exec -u root -t -i nursegridapi /bin/bash"
+
+## Sail things
+# Start the docker containers in detached mode
+alias sup="sail up -d"
+# Shorthand for Laravel Sail
+alias sail='[ -f sail ] && sh sail || sh vendor/bin/sail'
+# Run Laravel database migrations
+alias sam="sail artisan migrate"
+
+## Artisan things
+# Shortcut to run Laravel Artisan [COMMAND]
+alias san='sail artisan'
+
+## Env Switching
+# Switch the Laravel environment to the development environment
+alias swd='sail artisan env:switch development'
+# Switch the Laravel environment to the local docker environment
+alias swl='sail artisan env:switch docker'
+# Switch the Laravel environment to the production environment
+alias sws='sail artisan env:switch stage'
+
+### CS Fixer
+# Run PHP CS Fixer
+alias cs="php vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php  --diff --allow-risky=yes";
+
+## Phan
+# Run Phan locally on all files
+alias phanall="php vendor/bin/phan --progress-bar  -k.phan/config.php -C"
+
+## Both!
+prep="cs && phanall"
+
+## PHPUnit
+# Shortcut to run PHPUnit locally, outside of docker
+alias p='vendor/bin/phpunit'
+
+
+# Run Phan locally on only the files that have changed
+alias phan="php vendor/bin/phan --progress-bar -k.phan/config.php -C --include-analysis-file-list=\$(git diff --name-only | sed -e 'H;\${x;s/\n/,/g;s/^,//;p;};d')"
+
+
+### Alis Bin Directory ###
+alias gcbr="alis gcbr"
+alias st="alis st"
+
+ALISGREEN=$(tput setaf 2)
+ALISCYAN=$(tput setaf 6)
+ALISNC=$(tput sgr0)
+print "${ALISGREEN}✅ ALIS enabled -- Run ${ALISCYAN}alis list${ALISGREEN} to show all available commands${ALISNC}"

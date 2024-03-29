@@ -1,37 +1,77 @@
 #!/bin/bash
+shopt -s expand_aliases
 
-# Define the directory where your scripts and aliases are located
-SCRIPTS_DIR="$(dirname "$0")/bin"
+# Includes
+source "$(dirname "$0")/src/utils.sh"
+source "$(dirname "$0")/src/functions.sh"
 
-# If --help is passed as an argument, or no args are supplied, display the help message
-if [ "$1" == "--help" ] || [ -z "$1" ]; then
+### Option Processing ###
+while getopts ":v:-:" opt; do
+    case $opt in
+        -)
+            case ${OPTARG} in
+                help)
+                    printHelp
+                    exit 0
+                    ;;
+                *)
+                    echo "Invalid option: --${OPTARG}" >&2
+                    exit 1
+                    ;;
+            esac
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument." >&2
+            exit 1
+            ;;
+        ?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+    esac
+done
 
 
-  echo "Usage: alis <script> [args]"
-  echo "Available scripts:"
-  for script in "$SCRIPTS_DIR"/*.sh; do
-    script_name=$(basename "$script" .sh)
-    echo "  $script_name"
-  done
-  exit 0
+### Arg Processing ###
+if [ -z "$1" ]; then
+# If no args are supplied, display the help message
+  printHelp
+elif [ "$1" == "install" ]; then
+  # If arg is source, source all scripts in the bin directory
+  install
+elif [ "$1" == "update" ]; then
+  update
+elif [ "$1" == "list" ]; then
+  list
+else
+  # Otherwise, attempt to run the specified script if its in bin
+  if [ -f "$SCRIPTS_DIR/$1" ]; then
+    # Run,
+    run "$1" "${@:2}"
+
+   #  if it exists OK then print success, fail otherwise
+    if [ $? -eq 0 ]; then
+      echo
+      success "ALIS content - script success"
+    else
+      echo
+      error "ALIS is sad - something went wrong"
+    fi
+  else
+    # Source all the aliases in the /aliases directory
+    source "$(dirname "$0")/aliases/aliases"
+
+    # If the first argument is an alias, it will now be a function in scope of this script
+    if [ -n "$(type -t $1)" ]; then
+      # If the alias is found, run it with arguments, stripping the first as its redudant now, and dont include if empty
+      command=$1
+      shift
+      $command "$@"
+      exit 0
+    else
+      # If the alias is not found, print an error message
+      error "Error: script or alias '$1' does not exist."
+      exit 1
+    fi
+  fi
 fi
-
-
-# Special case for loading aliases
-if [ "$1" == "aliases" ]; then
-  source_aliases
-  exit 0
-fi
-
-# Rest of the script execution logic remains the same
-SCRIPT_NAME="$1.sh"
-shift  # Remove the first argument, leaving any additional arguments
-
-# Check if the script exists
-if [ ! -f "$SCRIPTS_DIR/$SCRIPT_NAME" ]; then
-  echo "Error: script '$SCRIPT_NAME' does not exist."
-  exit 1
-fi
-
-# Execute the script with any additional arguments
-"$SCRIPTS_DIR/$SCRIPT_NAME" "$@"

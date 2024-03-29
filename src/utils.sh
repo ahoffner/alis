@@ -1,39 +1,61 @@
+# Determine if stdout is a terminal...
+if [ -t 1 ]; then
+    # Determine if colors are supported...
+    if command -v tput >/dev/null 2>&1; then
+        ncolors=$(tput colors)
 
-# Define color codes
-SUCCESS='\033[0;32m'
-ERROR='\033[0;31m'
-WARNING='\033[0;33m'
-INFO='\033[0;34m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
+        # Define color codes
+        if [ -n "$ncolors" ] && [ "$ncolors" -ge 8 ]; then
+            BOLD=$(tput bold)
+            RED=$(tput setaf 1)
+            GREEN=$(tput setaf 2)
+            YELLOW=$(tput setaf 3)
+            BLUE=$(tput setaf 4)
+            MAGENTA=$(tput setaf 5)
+            CYAN=$(tput setaf 6)
+            NC=$(tput sgr0)
+        fi
+    else
+        # Fallback: Define default color codes
+        BOLD="\033[1m"
+        RED="\033[31m"
+        GREEN="\033[32m"
+        YELLOW="\033[33m"
+        BLUE="\033[34m"
+        MAGENTA="\033[35m"
+        CYAN="\033[36m"
+        NC="\033[0m" # No color
+    fi
+fi
+
 
 
 # Function to print success message
 success() {
-    echo -e "${SUCCESS}$1${NC}"
+  echo -e "${GREEN}$1${NC}"
 }
 
 # Function to print error message
 error() {
-    echo -e "${ERROR}$1${NC} "
+  echo -e "${RED}$1${NC} "
 }
 
 info() {
-    echo -e "${INFO}$1${NC}"
+  echo -e "${BLUE}$1${NC}"
 }
 
 warn() {
-     echo -e "${WARNING}$1${NC}"
+  echo -e "${YELLOW}$1${NC}"
 }
 
 # output a checkmark and indent the message
 checkoff() {
-    echo -e "    ${SUCCESS}✓${NC} $1"
+  echo -e "    ${GREEN}✓${NC} $1"
 }
 
-ask(){
+ask() {
   # A warn message followed by a info y/n prompt default y, return true if y or yes
-  echo -e "${WARNING}$1${INFO} [y/n] ${NC}"
+  echo -e "${YELLOW}$1${BLUE} [y/n] ${NC}"
   read -r confirm
 
   if [ "$confirm" == "y" ] || [ "$confirm" == "yes" ]; then
@@ -42,11 +64,185 @@ ask(){
   return 0
 }
 
-print_header() {
-    echo -e "${BLUE}"
-    # Ouput contents of "logo" file in the src directory
-    cat "$(dirname "$0")/src/logo"
-    echo -e "${NC}"
+# Takes the command string as arg 1, arguments in arg2 and options in arg3 (if any)
+usage() {
+  command=$1
+  args=$2
+  # If no third argument, set options to empty string
+  if [ -z "$3" ]; then
+    options=""
+  else
+    options=$3
+  fi
 
-    info "\n\n                               Alias Library In Shell\n"
+  echo -e "${YELLOW}Usage:${NC}"
+  echo "  ${GREEN}$command ${BLUE}$args ${MAGENTA}$options${NC}"
+  echo
+}
+
+header() {
+  echo -e "${YELLOW}$1${NC}"
+}
+
+sectionHeader() {
+  # Shows a header with a block of ### above and below
+  # Ex ############################
+  #    ###        Header        ###
+  #    ############################
+  # Get the length of the string plus 8 for the padding
+  strLength=$((${#1} + 6))
+  minStrLength=100
+
+  if [ $strLength -lt $minStrLength ]; then
+    strLength=$minStrLength
+  fi
+
+  echo -e "${BLUE}"
+  printf "%0.s#" $(seq 1 $strLength)
+  echo
+  # Center the text in the block
+  # discount the length of the leading ### and trailing ###
+  lineLength=$(($strLength - 6))
+  printf "###%*s%*s###\n" $((($lineLength + ${#1}) / 2)) "$1" $((($lineLength - ${#1}) / 2)) ""
+  printf "%0.s#" $(seq 1 $strLength)
+  echo "${NC}"
+}
+
+description() {
+  echo "    ${BLUE}$1"
+}
+
+descriptionHeader() {
+  echo -e "${YELLOW}Description:${NC}"
+}
+
+argumentHeader() {
+  echo -e "${YELLOW}Arguments:${NC}"
+}
+optionHeader() {
+  echo -e "${YELLOW}Options:${NC}"
+}
+
+summaryLine() {
+  # Takes two args, the option and a description.
+  option="${GREEN}$1"
+  description="${NC}$2${NC}"
+
+  # Outputs like usageRow in columns
+  printf "%-20s %s\n" "    ${option}" "${description}"
+
+}
+
+aliasUsageRow() {
+  # Arg 1 is the alias name, arg 2 is the aliased command and arg 3 is the description
+  aliasName="${GREEN}$1"
+  command="${BLUE}$2"
+  description="${NC}$3${NC}"
+  # Print the alias and description in the same line
+  displayRow "${aliasName}" "$description"
+  # then print the aliased command in the next line with the little down arrow right symbol
+  displayRow "" "→ ${command}" 1 4
+}
+
+usageRow() {
+  # take 2-4 args, the command, description, arguments, and options - the later are optional
+  command="${GREEN}$1"
+  description="${NC}$2${NC}"
+
+  if [ -z "$3" ]; then
+    arguments=""
+  else
+    arguments=" $3"
+  fi
+  if [ -z "$4" ]; then
+    options=""
+  else
+    options=" $4"
+  fi
+
+  displayRow "${command}${BLUE}${arguments}${MAGENTA}${options}" "$description"
+}
+
+displayRow() {
+  # Takes two args, the first column and the second column of the row
+  firstColumn=$1
+  secondColumn=$2
+
+  # If a 3rd arg is provided, it a custom columnWidth, use default
+  if [ -z "$3" ]; then
+    columnWidth=70
+  else
+    columnWidth=$3
+  fi
+
+  # 4th if supplied is the left padding
+  if [ -z "$4" ]; then
+    leftPadding=4
+  else
+    leftPadding=$4
+  fi
+
+  # Calculate length of the first column without considering color codes
+  length_without_color=$(echo -ne "${firstColumn}" | sed 's/\x1b\[[0-9;]*m//g' | wc -c)
+
+  printf "%-${leftPadding}s %-${columnWidth}s %-${columnWidth}s %b\n" " " "${firstColumn}" "${secondColumn}"
+
+}
+
+runSummary() {
+  echo -e "  ${YELLOW}Running:${CYAN}"
+  usageRow "$1" "$2" "$3" "$4"
+  echo
+}
+
+printHeader() {
+
+  echo -e "${BLUE}"
+  # Ouput contents of "logo" file in the src directory
+  cat "$(dirname "$0")/src/logo"
+  echo -e "${NC}"
+
+  info "\n\n                               Alias Library In Shell\n"
+}
+
+# Function to check if --help option is provided
+# Requires the function define a printHelp function and printSummary function
+checkHelp() {
+  for arg in "$@"; do
+    if [ "$arg" = "--help" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+checkSummary() {
+  for arg in "$@"; do
+    if [ "$arg" = "--summary" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+checkDescription() {
+  for arg in "$@"; do
+    if [ "$arg" = "--description" ]; then
+      return 0
+    fi
+  done
+  return 1
+}
+
+checkArgs() {
+  if checkHelp "$@"; then
+    printHelp
+    exit 0
+  elif checkSummary "$@"; then
+    printSummary
+    exit 0
+  elif checkDescription "$@"; then
+    printDescription
+    exit 0
+  fi
 }
