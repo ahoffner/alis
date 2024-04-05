@@ -78,7 +78,7 @@ if [ "$#" -gt 0 ]; then
 fi
 
 # If --stop was provided, tack on --stop-on-error and --stop-on-failure
-if [ "$stopFlags" = true ]; then
+if [ "$stopFlags" == true ]; then
     stopFlags="--stop-on-error --stop-on-failure"
 else
     stopFlags=""
@@ -100,5 +100,5 @@ done
 
 
 # Execute the final runCommand
-runSummary "$runCommand"
+runSummary "$bin test" "" "$filter $testCasePaths" "$stopFlags"
 $runCommand

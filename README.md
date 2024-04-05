@@ -41,7 +41,7 @@ Once installed, you can run `alis` or any of the provided scripts or aliases in 
 
 View all available aliases & functions by running:
 ```bash
-alis
+alis list
 ```
 
 

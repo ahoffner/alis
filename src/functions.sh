@@ -1,6 +1,20 @@
 
 # Define the directory where your scripts and aliases are located
 SCRIPTS_DIR="$(dirname "$0")/bin"
+CONFIG_SEE="### See https://github.com/ahoffner/alis for more information ####"
+CONFIG_HEADER="### MANAGED BY ALIS DO NOT EDIT ####"
+CONFIG_FOOTER="### END ALIS MANAGED ALIASES ####"
+
+# Determine the appropriate shell configuration file
+if [ -f "$HOME/.zshrc" ]; then
+  CONFIG_FILE="$HOME/.zshrc"
+elif [ -f "$HOME/.bashrc" ]; then
+  CONFIG_FILE="$HOME/.bashrc"
+else
+  info "Supported shell configuration file not found, must be either .zshrc or .bashrc"
+  exit 1
+fi
+
 
 # Print a help message
 printHelp() {
@@ -19,6 +33,7 @@ printHelp() {
   echo
   header "Setup:"
   usageRow "install" "Adds all the ${CYAN}alis${NC} scripts to your path so they can be invoked directly" "source"
+  usageRow "silenceStartup" "Hides the startup message shown when your terminal boots up"
 
   exit 1
 }
@@ -36,9 +51,6 @@ run() {
 
   # Call the script with --summary to get the summary, save it to a variable
   description=$("$SCRIPTS_DIR/$SCRIPT_NAME" --description)
-
-  # Output summary
-  runSummary "$SCRIPT_NAME" "$description" "$@"
 
   # Run the script with any additional arguments
   "$SCRIPTS_DIR/$SCRIPT_NAME" "$@"
@@ -108,16 +120,6 @@ install() {
   # Print ASCII art header
   printHeader
 
-  # Determine the appropriate shell configuration file
-  if [ -f "$HOME/.zshrc" ]; then
-    CONFIG_FILE="$HOME/.zshrc"
-  elif [ -f "$HOME/.bashrc" ]; then
-    CONFIG_FILE="$HOME/.bashrc"
-  else
-    info "Supported shell configuration file not found."
-    exit 1
-  fi
-
   info "Installing..."
 
   # Get the absolute path to the alis directory
@@ -126,13 +128,8 @@ install() {
 
   # Do the following in full, if it errors out, we'll print a message and exit
   set -e
-
   # Add aliases from /aliases to shell configuration file
   # Include a header to make it clear where the aliases are coming from, or find that line and replace contents between it and the footer
-  CONFIG_HEADER="### MANAGED BY ALIS DO NOT EDIT ####"
-  CONFIG_SEE="### See https://github.com/ahoffner/alis for more information ####"
-  CONFIG_FOOTER="### END ALIS MANAGED ALIASES ####"
-
   if grep -q "$CONFIG_HEADER" "$CONFIG_FILE"; then
     # Delete everything from the header to the footer
     echo "Removing existing alis configuration..."
@@ -151,13 +148,15 @@ install() {
 
   # If failed, print error message and exit
   if [ $? -eq 0 ]; then
-    success "\nInstallation successful! \n"
+    success "\n${GREEN}Installation successful!${NC} \n"
 
-    info "\nRun the following to start using alis:"
+    warn "\nRun the following to start using alis:"
     echo
-    echo "     source $CONFIG_FILE"
+    info "     ${CYAN}source $CONFIG_FILE ${NC}"
     echo
-    info "Then, run alis --help for usage information."
+    echo "Then, ${CYAN}alis list${NC} to view all possible commands, or  ${CYAN}alis --help${NC} for usage information."
+    echo
+    echo ""
   else
     error "An error occurred during installation."
   fi
@@ -182,5 +181,21 @@ update() {
   else
     # If there are no changes, print a message and exit
     success "Alis is up to date."
+  fi
+}
+
+silenceStartup() {
+  # Check if ALIS_HIDE_STARTUP is set already in $CONFIG_FILE and if so, print that its already hidden
+  if ! grep -q "ALIS_HIDE_STARTUP" "$CONFIG_FILE"; then
+    # If not, add it IN BETWEEN the $CONFIG_HEADER and $CONFIG_FOOTER
+    SILENCE="export ALIS_HIDE_STARTUP=true"
+    awk -v footer="$CONFIG_SEE" -v silence="$SILENCE" '{
+        print;
+        if ($0 == footer) print silence
+    }' $CONFIG_FILE > $CONFIG_FILE.tmp && mv $CONFIG_FILE.tmp $CONFIG_FILE
+    checkoff "Help messages hidden"
+  else
+    error "Already set to hide the startup message, nothing to do 👍"
+    exit 0
   fi
 }
