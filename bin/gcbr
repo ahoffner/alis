@@ -71,8 +71,9 @@ fi
 # Check if the new branch already exists
 wasNew=0
 if git show-ref --quiet "refs/heads/$new_branch"; then
-  info "Branch '$new_branch' already exists. Checking it out."
+  info "Branch '$new_branch' already exists. Checking it out & updating it..."
   git checkout "$new_branch" || exit 1
+  git pull origin "$new_branch" || exit 1
 else
   info "Creating branch '$new_branch'"
   wasNew=1
@@ -92,7 +93,7 @@ if ! git diff --name-only --diff-filter=U | grep -q .; then
     info "There are outstanding conflicts in the branch (likely as expected)."
     info "Resolve them manually, commit, and open a PR from ${new_branch} to ${target_branch} to cleanly merge upstream with conflicts resolved."
 else
-  warning "No conflicts found - this action not have been necessary."
+  warn "No conflicts found - this action not have been necessary."
 
   # ask if they want to undo this by deleting the branch and checking out the old one
   if [ $wasNew -eq 1 ]; then
