@@ -31,11 +31,11 @@ alias tink='sail artisan tinker'
 
 ## Env Switching
 # Switch the Laravel environment to the development environment
-alias swd='sail artisan env:switch development'
+alias swd='sail artisan switch:env development'
 # Switch the Laravel environment to the local docker environment
-alias swl='sail artisan env:switch docker'
+alias swl='sail artisan switch:env docker'
 # Switch the Laravel environment to the production environment
-alias sws='sail artisan env:switch stage'
+alias sws='sail artisan switch:env stage'
 
 ### CS Fixer
 # Run PHP CS Fixer
