@@ -89,7 +89,7 @@ echo
 success "Branch '$new_branch' created and pulled in '$target_branch'"
 
 # Check if there are conflicts (there probably should be or this wasnt required), if so print a message
-if ! git diff --name-only --diff-filter=U | grep -q .; then
+if git diff --name-only --diff-filter=U | grep -q .; then
     info "There are outstanding conflicts in the branch (likely as expected)."
     info "Resolve them manually, commit, and open a PR from ${new_branch} to ${target_branch} to cleanly merge upstream with conflicts resolved."
 else
