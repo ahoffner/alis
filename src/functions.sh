@@ -132,8 +132,8 @@ install() {
   # Include a header to make it clear where the aliases are coming from, or find that line and replace contents between it and the footer
   if grep -q "$CONFIG_HEADER" "$CONFIG_FILE"; then
     # Delete everything from the header to the footer
-    echo "Removing existing alis configuration..."
-    sed -i "/$CONFIG_HEADER/,/$CONFIG_FOOTER/d" "$CONFIG_FILE"
+    checkoff "Removing existing alis configuration..."
+    sed -i '' "/$CONFIG_HEADER/,/$CONFIG_FOOTER/d" "$CONFIG_FILE"
   fi
 
   # Add the header, aliases, and footer to the shell configuration file
