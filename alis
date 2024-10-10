@@ -1,9 +1,12 @@
 #!/bin/bash
 shopt -s expand_aliases
 
+# Determine the installation directory
+ALIS_DIR="$HOME/.local/alis"
+
 # Includes
-source "$(dirname "$0")/src/utils.sh"
-source "$(dirname "$0")/src/functions.sh"
+source "$ALIS_DIR/src/utils.sh"
+source "$ALIS_DIR/src/functions.sh"
 
 ### Option Processing ###
 while getopts ":v:-:" opt; do
@@ -31,24 +34,17 @@ while getopts ":v:-:" opt; do
     esac
 done
 
-
 ### Arg Processing ###
-
 # If no args are supplied, or they called help or --help display the help message
 if [ -z "$1" ] || [ "$1" == "help" ]; then
   printHelp
-elif [ "$1" == "silenceStartup" ]; then
-  silenceStartup
-elif [ "$1" == "install" ]; then
-  # If arg is source, source all scripts in the bin directory
-  install
-elif [ "$1" == "update" ]; then
-  update
-elif [ "$1" == "list" ]; then
-  list
+elif declare -F "$1" > /dev/null; then
+    "$@"
+    exit 0
 else
   # Otherwise, attempt to run the specified script if its in bin
-  if [ -f "$SCRIPTS_DIR/$1" ]; then
+  if [ -f "$ALIS_DIR/bin/$1" ]; then
+    echo 'runnin'
     # Run,
     run "$1" "${@:2}"
 
@@ -61,19 +57,21 @@ else
       error "ALIS is sad - something went wrong"
     fi
   else
+    echo 'sourcing'
     # Source all the aliases in the /aliases directory
-    source "$(dirname "$0")/aliases/aliases"
+    source "$ALIS_DIR/aliases/aliases"
 
     # If the first argument is an alias, it will now be a function in scope of this script
     if [ -n "$(type -t $1)" ]; then
       # If the alias is found, run it with arguments, stripping the first as its redudant now, and dont include if empty
       command=$1
+      echo $command "$@"
       shift
       $command "$@"
       exit 0
     else
       # If the alias is not found, print an error message
-      error "Error: script or alias '$1' does not exist."
+      error "ALIS is sad - script or alias '$1' does not exist."
       exit 1
     fi
   fi
