@@ -30,6 +30,78 @@ fi
 
 
 
+# Loading spinner function with a custom message and inline command execution
+runAndWait() {
+ local message=$1
+  shift
+  local command="$@"
+  local delay=0.05
+  local spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+
+  # Run the command in the background, redirecting output to a temp file for error capture
+  local temp_output=$(mktemp)
+  ( eval "$command" >"$temp_output" 2>&1 ) &
+
+  # Get the PID of the background command
+  local pid=$!
+
+  # Show spinner while the command is running
+  while kill -0 "$pid" 2>/dev/null; do
+    for symbol in "${spinner[@]}"; do
+      echo -ne "\r    ${YELLOW}$symbol${NC} $message"
+      sleep $delay
+    done
+  done
+
+  # Check the exit status of the command
+  wait $pid
+  local exit_status=$?
+
+  # Clear the spinner line
+  echo -ne "\r"
+
+  if [[ $exit_status -eq 0 ]]; then
+    # Print a success message if command succeeded
+    checkoff "$message completed"
+  else
+    # Print the error output if command failed
+    echo -e "    ${RED}✗${NC} Error occurred: "
+    cat "$temp_output"
+  fi
+
+  # Remove the temporary output file
+  rm -f "$temp_output"
+}
+
+# Start loading spinner function
+startLoading() {
+  local message=$1
+  local delay=0.1
+  local spinner=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
+
+  # Start a background process to show the spinner
+  (
+    while true; do
+      for symbol in "${spinner[@]}"; do
+        echo -ne "\r    ${YELLOW}$symbol${NC} $message"
+        sleep $delay
+      done
+    done
+  ) &
+  SPINNER_PID=$!  # Store the PID of the spinner process
+}
+
+# Stop loading spinner function
+stopLoading() {
+  # Kill the spinner process
+  kill "$SPINNER_PID" 2>/dev/null
+  wait "$SPINNER_PID" 2>/dev/null
+
+  # Clear the spinner line
+  echo -ne "\r\033[K"
+}
+
+
 # Function to print success message
 success() {
   echo -e "${GREEN}$1${NC}"
