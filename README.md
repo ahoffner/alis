@@ -31,9 +31,8 @@ A collection of personally useful zsh/bash functions &amp; aliases
 One line install:
    
 ```bash
-cd ~ && git clone git@github.com:ahoffner/alis.git && cd alis && ./alis install
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/ahoffner/alis/main/install.sh)"
 ```
-Reload your terminal or run `source ~/.zshrc` or `source ~/.bashrc` to apply the changes.
 
 
 ## Usage
