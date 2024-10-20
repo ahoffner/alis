@@ -1,51 +1,57 @@
 #!/bin/bash
-shopt -s expand_aliases
 
-# Determine the installation directory
-ALIS_DIR="$HOME/.local/alis"
+# Ensure aliases are expanded
+setopt aliases 2>/dev/null || shopt -s expand_aliases
+
+# The installation directory in zsh
+ALIS_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/alis"
 
 # Includes
 source "$ALIS_DIR/src/utils.sh"
 source "$ALIS_DIR/src/functions.sh"
 
+
+echo "opts" 
 ### Option Processing ###
-while getopts ":v:-:" opt; do
+while getopts ":v-:" opt; do
+echo $opt
     case $opt in
         -)
             case ${OPTARG} in
                 help)
                     printHelp
-                    exit 0
+                    return 0
                     ;;
                 *)
                     echo "Invalid option: --${OPTARG}" >&2
-                    exit 1
+                    return 1
                     ;;
             esac
             ;;
         :)
             echo "Option -$OPTARG requires an argument." >&2
-            exit 1
+            return 1
             ;;
         ?)
             echo "Invalid option: -$OPTARG" >&2
-            exit 1
+            return 1
             ;;
     esac
 done
+return 0
 
 ### Arg Processing ###
 # If no args are supplied, or they called help or --help display the help message
-if [ -z "$1" ] || [ "$1" == "help" ]; then
+if [[ -z "$1" ]] || [[ "$1" == "help" ]]; then
   printHelp
-elif declare -F "$1" > /dev/null; then
-    "$@"
-    exit 0
+# If the first argument prefixed with "alisRun" is a function, run it:
+elif declare -F "alisRun_$1" > /dev/null; then
+    "alisRun_$@"
+    return 0
 else
   # Otherwise, attempt to run the specified script if its in bin
-  if [ -f "$ALIS_DIR/bin/$1" ]; then
-    echo 'runnin'
-    # Run,
+  if [ -f "$ALIS_DIR/functions/$1" ]; then
+    # Run
     run "$1" "${@:2}"
 
    #  if it exists OK then print success, fail otherwise
@@ -58,7 +64,7 @@ else
     fi
   else
     echo 'sourcing'
-    # Source all the aliases in the /aliases directory
+    # Source all the aliases.sh in the /aliases.sh directory
     source "$ALIS_DIR/aliases/aliases"
 
     # If the first argument is an alias, it will now be a function in scope of this script
@@ -68,11 +74,11 @@ else
       echo $command "$@"
       shift
       $command "$@"
-      exit 0
+      return 0
     else
       # If the alias is not found, print an error message
       error "ALIS is sad - script or alias '$1' does not exist."
-      exit 1
+      return 1
     fi
   fi
 fi
