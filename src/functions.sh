@@ -1,5 +1,5 @@
 
-# Define the directory where your scripts and aliases are located
+# Define the directory where your scripts and aliases.sh are located
 SOURCE="${BASH_SOURCE[0]}"
 while [ -h "$SOURCE" ]; do
   DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )"
@@ -7,9 +7,11 @@ while [ -h "$SOURCE" ]; do
   [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
 done
 SRC_DIR="$( cd -P "$( dirname "$SOURCE" )" >/dev/null 2>&1 && pwd )/"
-BASE_DIR="$(dirname "$SRC_DIR")"
-SCRIPTS_DIR="$BASE_DIR/bin"
+
+BASE_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/alis"
+SCRIPTS_DIR="$BASE_DIR/functions"
 ALIASES_DIR="$BASE_DIR/aliases"
+
 
 CONFIG_SEE="### See https://github.com/ahoffner/alis for more information ####"
 CONFIG_HEADER="### MANAGED BY ALIS DO NOT EDIT ####"
@@ -28,6 +30,7 @@ fi
 
 # Print a help message
 printHelp() {
+
   printHeader
 
   usage "alis ${BOLD}${NC}COMMAND" "<arguments> [options]"
@@ -45,7 +48,6 @@ printHelp() {
   usageRow "install" "Adds all the ${CYAN}alis${NC} scripts to your path so they can be invoked directly" "source"
   usageRow "silenceStartup" "Hides the startup message shown when your terminal boots up"
 
-  exit 1
 }
 
 # Run a script from bin
@@ -56,7 +58,8 @@ run() {
   # Check if the script exists
   if [ ! -f "$SCRIPTS_DIR/$SCRIPT_NAME" ]; then
     echo "Error: script '$SCRIPT_NAME' does not exist."
-    exit 1
+    return 1
+
   fi
 
   # Call the script with --summary to get the summary, save it to a variable
@@ -64,8 +67,7 @@ run() {
 
   # Run the script with any additional arguments
   "$SCRIPTS_DIR/$SCRIPT_NAME" "$@"
-
-exit
+  
   # Execute the script with any additional arguments, and run it in the background
   "$SCRIPTS_DIR/$SCRIPT_NAME" "$@" &
 }
@@ -83,9 +85,9 @@ list() {
   echo
   info "    ↑ Run any of the above scripts with --help for more information."
 
-  # List all aliases in /aliases. This file will have comments to parse. Lines starting with ## indicate a section header, one one # a description proceeding the alias
+  # List all aliases.sh in /aliases.sh. This file will have comments to parse. Lines starting with ## indicate a section header, one one # a description proceeding the alias
 
-  # loop through all files in the aliases directory
+  # loop through all files in the aliases.sh directory
   for alias in "$ALIASES_DIR"/*; do
     # Read the file contents line by line
     while IFS= read -r line; do
@@ -114,8 +116,9 @@ list() {
           # If this contains "alias [name]=", grab the name of the line alias [name]= and before the '
           if [[ $line == *"alias "* ]]; then
             aliasName=$(echo $line | cut -d ' ' -f 2 | cut -d '=' -f 1)
-            # Grab the command after the =, strip the " and ' and the ; if it exists
-            command=$(echo $line | cut -d '=' -f 2 | sed 's/["'\'']//g' | sed 's/;//g')
+            # Grab the command after the "=", strip the quotes, and semicolons
+            command=$(echo "$line" | cut -d '=' -f 2 | sed 's/["'\'']//g' | sed 's/;//g')
+
             aliasUsageRow "$aliasName" "$command" "$description"
             description=""
           fi
@@ -126,80 +129,6 @@ list() {
 
 }
 
-install() {
-  # Print ASCII art header
-  printHeader
-
-  info "Installing..."
-
-  # Get the absolute path to the alis directory
-  ALIS_DIR=$(cd "$(dirname "$0")" && pwd)
-  TIMESTAMP=$(date +%s)
-  # Where we'll install to:
-  TARGET_DIR="$HOME/.local/alis"
-  # Where the alis script will be linked to
-  BIN_DIR="$HOME/.local/bin"
-
-  # Do the following in full, if it errors out, we'll print a message and exit
-  set -e
-  # Add aliases from /aliases to shell configuration file
-  # Include a header to make it clear where the aliases are coming from, or find that line and replace contents between it and the footer
-  if grep -q "$CONFIG_HEADER" "$CONFIG_FILE"; then
-    # Delete everything from the header to the footer
-    checkoff "Removing asdf existing alis configuration..."
-    sed -i '' "/$CONFIG_HEADER/,/$CONFIG_FOOTER/d" "$CONFIG_FILE"
-    # Remove any blank lines at the end of the config file
-    sed -i '' -e :a -e '/^\n*$/{$d;N;};/\n$/ba' "$CONFIG_FILE"
-  fi
-
-  # Add the header, aliases, and footer to the shell configuration file
-  echo -e "\\n$CONFIG_HEADER" >>"$CONFIG_FILE"
-  echo "$CONFIG_SEE" >>"$CONFIG_FILE"
-  echo "source $TARGET_DIR/aliases/*" >>"$CONFIG_FILE"
-  echo "export PATH=\"\$PATH:$TARGET_DIR/bin\"" >>"$CONFIG_FILE"
-  echo "export PATH=\"\$PATH:$TARGET_DIR\"" >>"$CONFIG_FILE"
-  echo "$CONFIG_FOOTER" >>"$CONFIG_FILE"
-
-  checkoff "Aliases added to $CONFIG_FILE"
-
-  # Ensure the target directories exist
-
-  if [ ! -d "$TARGET_DIR" ]; then
-    mkdir -p "$TARGET_DIR"
-  fi
-  if [ ! -d "$BIN_DIR" ]; then
-    mkdir -p "$BIN_DIR"
-  fi
-
-  # Copy the entire alis directory to the target directory, ignore if they are identical (reinstall)
-  cp -r "$ALIS_DIR" "$TARGET_DIR" > /dev/null 2>&1 || true
-
-  # Create symbolic links in ~/.local/bin pointing to the alis script
-  ln -sf "$TARGET_DIR/alis" "$BIN_DIR/alis"
-
-  checkoff "Alis has been installed to $TARGET_DIR and linked in $BIN_DIR"
-
-  # Re-source the shell configuration file using zsh with error handling and suppress output
-  if [[ "$SHELL" == *"zsh" ]]; then
-    runAndWait "Reloading your source..." "zsh -c '. \"$CONFIG_FILE\"'"
-  else
-    runAndWait "Reloading shell configuration..." "source \"$CONFIG_FILE\""
-  fi
-
-  echo
-  # If failed, print error message and exit
-  if [ $? -eq 0 ]; then
-    success "\n${GREEN}Installation successful!${NC} \n"
-
-    echo "Run ${CYAN}alis list${NC} to view all possible commands, or  ${CYAN}alis --help${NC} for usage information."
-    echo
-    echo ""
-
-  else
-    error "An error occurred during installation."
-  fi
-}
-
 # Uninstall the alis script and remove related files
 uninstall() {
   # Print ASCII art header
@@ -208,8 +137,8 @@ uninstall() {
   info "Uninstalling..."
 
   # Define the target directories
-  TARGET_DIR="$HOME/.local/alis"
-  BIN_DIR="$HOME/.local/bin"
+  TARGET_DIR="$BASE_DIR"
+  BIN_DIR="$HOME/.local/functions"
 
   # Remove the alis directory
   if [ -d "$TARGET_DIR" ]; then
@@ -219,7 +148,7 @@ uninstall() {
     warn "$TARGET_DIR does not exist"
   fi
 
-  # Remove the symbolic links in ~/.local/bin
+  # Remove the symbolic links in ~/.local/functions
   if [ -L "$BIN_DIR/alis" ]; then
     rm "$BIN_DIR/alis"
     checkoff "Removed symbolic link $BIN_DIR/alis"
@@ -233,8 +162,8 @@ uninstall() {
 # Print the current version and the most recent available version
 version() {
   # Get the current version from the VERSION file
-  if [ -f "$HOME/.local/alis/VERSION" ]; then
-    current_version=$(cat "$HOME/.local/alis/VERSION")
+  if [ -f "$BASE_DIR/VERSION" ]; then
+    current_version=$(cat "$BASE_DIR/VERSION")
   else
     current_version="0.0.0"  # Default to "0.0.0" if no VERSION file exists
   fi
@@ -270,8 +199,8 @@ update() {
   latest_tag=$(curl -s https://api.github.com/repos/ahoffner/alis/releases/latest | grep '"tag_name":' | sed -E 's/.*"([^"]+)".*/\1/')
 
   # Get the current version (assuming it's stored in a file named VERSION)
-  if [ -f "$HOME/.local/alis/VERSION" ]; then
-    current_version=$(cat "$HOME/.local/alis/VERSION")
+  if [ -f "$BASE_DIR/VERSION" ]; then
+    current_version=$(cat "$BASE_DIR/VERSION")
   else
     current_version="0.0.0"  # Default to "0.0.0" if no VERSION file exists
   fi
@@ -292,7 +221,7 @@ update() {
       ./alis install
 
       # Update the VERSION file
-      echo "$latest_tag" > "$HOME/.local/alis/VERSION"
+      echo "$latest_tag" > "$BASE_DIR/VERSION"
 
       success "Alis has been updated to version $latest_tag."
 
@@ -300,7 +229,7 @@ update() {
       rm -rf "$temp_dir"
     else
       # If the user declines, exit
-      exit 0
+      return 0
     fi
   else
     # If there are no changes, print a message and exit
@@ -320,6 +249,6 @@ silenceStartup() {
     checkoff "Help messages hidden"
   else
     error "Already set to hide the startup message, nothing to do 👍"
-    exit 0
+    return 0
   fi
 }

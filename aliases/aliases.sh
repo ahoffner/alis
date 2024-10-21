@@ -1,3 +1,8 @@
+## Alis
+# Alis is a simple alias manager for bash. It allows you to easily manage your aliases in a single file.
+alias alis="source $ZSH_CUSTOM/plugins/alis/alis.sh"
+alias reload=s"ource ~/.zshrc"
+
 ## Regular Aliases
 ### Run alis list to view in terminal
 
@@ -48,7 +53,7 @@ alias cs="php vendor/bin/php-cs-fixer fix --config=.php-cs-fixer.php  --diff --a
 
 ## Phan
 # Run Phan locally on all files
-alias phanall="php vendor/bin/phan --progress-bar  -k.phan/config.php -C"
+alias phan="php vendor/bin/phan --progress-bar  -k.phan/config.php -C"
 
 ## CS + Phan
 # Shortcut to run both CS Fixer and Phan locally
@@ -58,20 +63,8 @@ alias prep="cs && phanall"
 # Shortcut to run PHPUnit locally, outside of docker
 alias p='vendor/bin/phpunit'
 
-
-# Run Phan locally on only the files that have changed
-alias phan="php vendor/bin/phan --progress-bar -k.phan/config.php -C --include-analysis-file-list=\$(git diff --name-only | sed -e 'H;\${x;s/\n/,/g;s/^,//;p;};d')"
-
-
-### Alis Bin Directory ###
+### Alis Functions ###
+# Wrap the functions with alis to handle the argument processing
 alias gcbr="alis gcbr"
+alias gcb="alis gcb"
 alias st="alis st"
-
-# If set to hide this help text with ALIS_HIDE_HELP, dont show it
-if [[ "$ALIS_HIDE_STARTUP" != "true" ]]; then
-    ALISGREEN=$(tput setaf 2)
-    ALISCYAN=$(tput setaf 6)
-    ALISBLUE=$(tput setaf 5)
-    ALISNC=$(tput sgr0)
-    print "${ALISGREEN} 🚀 ALIS Available ${ALISBLUE}[[ Run ${ALISCYAN}alis list${ALISBLUE} to show all available commands. ]]\n${ALISNC}"
-fi

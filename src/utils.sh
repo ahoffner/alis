@@ -1,3 +1,6 @@
+# The installation directory in zsh
+ALIS_DIR="${ZSH_CUSTOM:-$HOME/.oh-my-zsh/custom}/plugins/alis"
+
 # Determine if stdout is a terminal...
 if [ -t 1 ]; then
     # Determine if colors are supported...
@@ -136,19 +139,20 @@ ask() {
   return 0
 }
 
-# Takes the command string as arg 1, arguments in arg2 and options in arg3 (if any)
+# Takes the command string as arg 1, arguments in arg2 and usageoptions in arg3 (if any)
 usage() {
   command=$1
   args=$2
-  # If no third argument, set options to empty string
+
+  # If no third argument, set usageoptions to empty string
   if [ -z "$3" ]; then
-    options=""
+    usageoptions=""
   else
-    options=$3
+    usageoptions=$3
   fi
 
   echo -e "${YELLOW}Usage:${NC}"
-  echo "  ${GREEN}$command ${BLUE}$args ${MAGENTA}$options${NC}"
+  echo "  ${GREEN}$command ${BLUE}$args ${MAGENTA}$usageoptions${NC}"
   echo
 }
 
@@ -210,6 +214,7 @@ aliasUsageRow() {
   aliasName="${GREEN}$1"
   command="${BLUE}$2"
   description="${NC}$3${NC}"
+
   # Print the alias and description in the same line
   displayRow "${aliasName}" "$description"
   # then print the aliased command in the next line with the little down arrow right symbol
@@ -217,7 +222,7 @@ aliasUsageRow() {
 }
 
 usageRow() {
-  # take 2-4 args, the command, description, arguments, and options - the later are optional
+  # take 2-4 args, the command, description, arguments, and usageoptions - the later are optional
   command="${GREEN}$1"
   description="${NC}$2${NC}"
 
@@ -227,12 +232,12 @@ usageRow() {
     arguments=" $3"
   fi
   if [ -z "$4" ]; then
-    options=""
+    usageoptions=""
   else
-    options=" $4"
+    usageoptions=" $4"
   fi
 
-  displayRow "${command}${BLUE}${arguments}${MAGENTA}${options}" "$description"
+  displayRow "${command}${BLUE}${arguments}${MAGENTA}${usageoptions}" "$description"
 }
 
 displayRow() {
@@ -271,10 +276,9 @@ printHeader() {
 
   echo -e "${BLUE}"
   # Ouput contents of "logo" file in the src directory
-  cat "$(dirname "$0")/src/logo"
+  cat "$ALIS_DIR/src/logo"
   echo -e "${NC}"
-
-  info "\n\n                               Alias Library In Shell\n"
+  echo 'proc'
 }
 
 # Function to check if --help option is provided
@@ -309,12 +313,12 @@ checkDescription() {
 checkArgs() {
   if checkHelp "$@"; then
     printHelp
-    exit 0
+    return 0
   elif checkSummary "$@"; then
     printSummary
-    exit 0
+    return 0
   elif checkDescription "$@"; then
     printDescription
-    exit 0
+    return 0
   fi
 }
