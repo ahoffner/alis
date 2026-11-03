@@ -1,0 +1,21 @@
+# {{.Name}}
+
+An [alis](https://github.com/ahoffner/alis) pack.
+
+## Install
+
+```bash
+alis pack add <this repo's git URL>
+```
+
+While working on it locally, link your checkout instead so edits show up straight away:
+
+```bash
+alis pack add .
+```
+
+## Writing commands
+
+Commands live in `alis.toml`. Each one is an `alias`, a `function` (runs in your shell) or a
+`script` (an executable in `bin/`). Run `alis list --pack {{.Name}}` to see them and
+`alis doctor` to check for problems.

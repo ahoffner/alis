@@ -1,0 +1,32 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      HAS_TAP_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN != '' }}
+    steps:
+      - uses: actions/checkout@v5
+      - name: Create GitHub release
+        run: gh release create "$GITHUB_REF_NAME" --generate-notes --verify-tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Update the Homebrew formula
+        # Skipped until the HOMEBREW_TAP_TOKEN secret exists; update Formula/alis.rb by hand until then.
+        if: env.HAS_TAP_TOKEN == 'true'
+        # Pinned to a commit because this step gets a token that can write to the tap.
+        uses: mislav/bump-homebrew-formula-action@56a283fa15557e9abaa4bdb63b8212abc68e655c # v3.6
+        with:
+          formula-name: alis
+          homebrew-tap: ahoffner/homebrew-tap
+          download-url: https://github.com/ahoffner/alis/archive/refs/tags/${{ github.ref_name }}.tar.gz
+        env:
+          # A fine-grained token with Contents: write on ahoffner/homebrew-tap.
+          COMMITTER_TOKEN: ${{ secrets.HOMEBREW_TAP_TOKEN }}

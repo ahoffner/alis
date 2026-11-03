@@ -1,0 +1,25 @@
+name = "{{.Name}}"
+description = "{{.Description}}"
+# requires = ["docker"]   # tools `alis doctor` should check for
+
+# Three kinds of command. Each sets exactly one of alias, function or script.
+
+[commands.{{.Prefix}}hello]
+description = "Example alias: arguments are appended"
+alias = "echo hello from {{.Name}}"
+
+[commands.{{.Prefix}}greet]
+description = "Example function: runs inside your shell, so it can cd or export"
+usage = "<name>"
+function = '''
+if [ -z "$1" ]; then echo "usage: {{.Prefix}}greet <name>" >&2; return 1; fi
+echo "Hi, $1"
+'''
+
+[commands.{{.Prefix}}example]
+description = "Example script: any executable in the pack, run as a subprocess"
+usage = "[args…]"
+script = "bin/{{.Prefix}}example"
+help = '''
+Longer help shown by `alis info {{.Prefix}}example`.
+'''

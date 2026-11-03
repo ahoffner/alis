@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# {{.Prefix}}example — replace me. Helpers (info, warn, die, confirm, run…) come from $ALIS_LIB.
+source "${ALIS_LIB:?run this through alis}"
+
+info "Running {{.Prefix}}example with: $*"
+if confirm "Do the thing?"; then
+  success "Done."
+fi

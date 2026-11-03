@@ -1,0 +1,40 @@
+name = "git"
+description = "Git shortcuts and branch-resolution helpers"
+requires = ["git"]
+
+[commands.gco]
+description = "Check out the branch you were on before"
+alias = "git checkout -"
+
+[commands.gc]
+description = "Check out a branch and pull it"
+usage = "<branch>"
+function = '''
+if [ -z "$1" ]; then echo "usage: gc <branch>" >&2; return 1; fi
+git checkout "$1" && git pull
+'''
+
+[commands.gsal]
+description = "Apply the most recent stash, keeping it in the stash list"
+alias = "git stash apply stash@{0}"
+
+[commands.gcbr]
+description = "Create a conflict-resolution branch <current>-<target> with <target> merged in"
+usage = "<target-branch>"
+script = "bin/gcbr"
+help = '''
+Use this when a PR from your branch into <target> has conflicts you can't push to
+<target> directly. gcbr creates (or updates) <current>-<target>, merges origin/<target>
+into it, and leaves you to resolve the conflicts. Open a PR from the new branch into
+<target>. If the merge turns out clean, it offers to undo.
+'''
+
+[commands.gsbr]
+description = "Sync a resolution branch from gcbr with both its source and target"
+usage = "[target-branch]"
+script = "bin/gsbr"
+help = '''
+Run on a branch created by gcbr (<source>-<target>). Pulls origin/<source> and
+origin/<target> into it, so the resolution branch picks up new commits from both sides.
+With no argument, the target is worked out from the branch name and the remote branches.
+'''

@@ -1,0 +1,54 @@
+name = "laravel"
+description = "Laravel Sail shortcuts"
+requires = ["docker"]
+
+[commands.sail]
+description = "Run ./sail if the project has one, otherwise vendor/bin/sail"
+usage = "[sail args…]"
+function = '''
+if [ -f ./sail ]; then
+  bash ./sail "$@"
+elif [ -f vendor/bin/sail ]; then
+  bash vendor/bin/sail "$@"
+else
+  echo "sail: no ./sail or vendor/bin/sail here. Run this from a Laravel Sail project root." >&2
+  return 1
+fi
+'''
+
+[commands.sup]
+description = "Start the Sail containers in the background"
+alias = "sail up -d"
+
+[commands.san]
+description = "Run an Artisan command through Sail"
+usage = "<artisan command>"
+alias = "sail artisan"
+
+[commands.sam]
+description = "Run database migrations through Sail"
+alias = "sail artisan migrate"
+
+[commands.sac]
+description = "Run Composer through Sail"
+usage = "<composer command>"
+alias = "sail composer"
+
+[commands.tink]
+description = "Open Tinker through Sail"
+alias = "sail artisan tinker"
+
+[commands.st]
+description = "Run tests through Sail, with an optional filter and paths"
+usage = "[filter] [paths…] [--stop]"
+script = "bin/st"
+help = '''
+The first argument that isn't a path or an option becomes --filter. Arguments that
+contain a '/' or end in .php are test paths. --stop adds --stop-on-error and
+--stop-on-failure. --dry-run prints the command instead of running it. Any other
+option is passed through to the test runner.
+
+  st testUserCanLogin
+  st tests/Unit/Billing --stop
+  st Invoice tests/Feature --coverage
+'''

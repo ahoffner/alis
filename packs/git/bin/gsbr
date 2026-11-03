@@ -1,0 +1,74 @@
+#!/usr/bin/env bash
+# gsbr [target-branch] — on a gcbr branch <source>-<target>, pull in both origin/<source> and origin/<target>.
+# shellcheck source=SCRIPTDIR/../../../lib/alis.sh
+source "${ALIS_LIB:?run this through alis}"
+
+case "${1:-}" in
+  -h | --help)
+    echo "usage: gsbr [target-branch]"
+    echo "On <source>-<target> (made by gcbr), merge in origin/<source> and origin/<target>."
+    exit 0
+    ;;
+esac
+
+require_git_repo
+current="$(git rev-parse --abbrev-ref HEAD)"
+[ "$current" != "HEAD" ] || die "You're in detached HEAD. Check out the resolution branch first."
+
+require_clean_tree
+run git fetch origin || die "git fetch failed."
+
+target="${1:-}"
+if [ -z "$target" ]; then
+  # Find remote branches <t> such that the current branch is <s>-<t> and origin/<s> also exists.
+  matches=""
+  count=0
+  for t in $(git for-each-ref --format='%(refname:strip=3)' refs/remotes/origin); do
+    case "$current" in
+      *-"$t")
+        s="${current%-"$t"}"
+        if [ -n "$s" ] && git show-ref --verify --quiet "refs/remotes/origin/$s"; then
+          matches="$matches $t"
+          count=$((count + 1))
+        fi
+        ;;
+    esac
+  done
+  if [ "$count" -eq 1 ]; then
+    target="${matches# }"
+  else
+    [ "$count" -gt 1 ] && warn "'$current' could be split more than one way:${matches}"
+    target="$(prompt "Target branch:")"
+  fi
+fi
+[ -n "$target" ] || die "No target branch given."
+
+case "$current" in
+  *-"$target") source_branch="${current%-"$target"}" ;;
+  *) die "'$current' doesn't end in '-$target', so it isn't a gcbr branch for '$target'." ;;
+esac
+[ -n "$source_branch" ] || die "Couldn't work out the source branch from '$current'."
+
+sync() {
+  local branch="$1"
+  if ! git show-ref --verify --quiet "refs/remotes/origin/$branch"; then
+    warn "origin/$branch doesn't exist; skipping."
+    return 0
+  fi
+  info "Merging origin/$branch into '$current'…"
+  run git pull --no-rebase --no-edit origin "$branch"
+  local status=$?
+  if has_conflicts; then
+    warn "Conflicts after merging origin/$branch:"
+    git diff --name-only --diff-filter=U | sed 's/^/    /' >&2
+    info "Resolve them and commit, then run gsbr again to finish syncing."
+    exit 0
+  fi
+  [ "$status" -eq 0 ] || die "git pull origin $branch failed."
+}
+
+sync "$current"
+sync "$source_branch"
+sync "$target"
+echo
+success "'$current' is up to date with '$source_branch' and '$target'."

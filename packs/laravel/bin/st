@@ -1,0 +1,47 @@
+#!/usr/bin/env bash
+# st [filter] [paths…] [--stop] [--dry-run] [phpunit options…] — run tests through Sail.
+# shellcheck source=SCRIPTDIR/../../../lib/alis.sh
+source "${ALIS_LIB:?run this through alis}"
+
+filter=""
+dry_run=0
+args=() # passed through to the test runner
+
+for arg in "$@"; do
+  case "$arg" in
+    -h | --help)
+      echo "usage: st [filter] [paths…] [--stop] [--dry-run] [phpunit options…]"
+      exit 0
+      ;;
+    --stop) args+=(--stop-on-error --stop-on-failure) ;;
+    --dry-run) dry_run=1 ;;
+    -*) args+=("$arg") ;;
+    */* | *.php) args+=("$arg") ;;
+    *)
+      if [ -z "$filter" ]; then
+        filter="$arg"
+      else
+        args+=("$arg")
+      fi
+      ;;
+  esac
+done
+
+if [ -f ./sail ]; then
+  sail_bin=./sail
+elif [ -f vendor/bin/sail ]; then
+  sail_bin=vendor/bin/sail
+else
+  die "No ./sail or vendor/bin/sail here. Run this from a Laravel Sail project root."
+fi
+
+cmd=(bash "$sail_bin" test)
+[ -n "$filter" ] && cmd+=("--filter=$filter")
+[ "${#args[@]}" -gt 0 ] && cmd+=("${args[@]}")
+
+if [ "$dry_run" -eq 1 ]; then
+  printf '%q ' "${cmd[@]}"
+  echo
+  exit 0
+fi
+run "${cmd[@]}"

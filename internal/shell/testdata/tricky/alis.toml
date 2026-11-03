@@ -1,0 +1,25 @@
+# Commands that exercise quoting and name collisions in the generated shell code.
+name = "tricky"
+
+[commands.q]
+description = "Alias with quotes, a variable and a backslash"
+alias = '''echo "it's" $HOME \"x\" \\ done'''
+
+[commands.fn]
+description = "Function printing each argument"
+function = '''
+printf '%s|' "$@"
+echo
+'''
+
+[commands.usealias]
+description = "Function whose body uses another command's alias"
+function = "q"
+
+[commands.gc]
+description = "Collides with an existing alias of the same name"
+function = "echo mine"
+
+[commands.scr]
+description = "Script that echoes its argument and $ALIS_LIB"
+script = "bin/scr"

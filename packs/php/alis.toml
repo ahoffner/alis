@@ -1,0 +1,33 @@
+name = "php"
+description = "PHP quality tools: PHP CS Fixer, Phan and PHPUnit"
+requires = ["php"]
+
+[commands.cs]
+description = "Fix code style with PHP CS Fixer (uses the project's .php-cs-fixer.php)"
+usage = "[paths…]"
+alias = "php vendor/bin/php-cs-fixer fix --diff --allow-risky=yes"
+
+[commands.phanall]
+description = "Run Phan on the whole project"
+alias = "php vendor/bin/phan --progress-bar -C"
+
+[commands.phan]
+description = "Run Phan on PHP files changed since the last commit (staged or not)"
+function = '''
+local files
+files="$(git diff --name-only --diff-filter=d HEAD -- '*.php' | paste -sd, -)"
+if [ -z "$files" ]; then
+  echo "phan: no changed PHP files." >&2
+  return 0
+fi
+php vendor/bin/phan --progress-bar -C --include-analysis-file-list="$files" "$@"
+'''
+
+[commands.prep]
+description = "Fix code style, then run Phan on the whole project"
+function = "cs && phanall"
+
+[commands.p]
+description = "Run PHPUnit directly, outside Docker"
+usage = "[phpunit args…]"
+alias = "vendor/bin/phpunit"

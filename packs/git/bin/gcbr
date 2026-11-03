@@ -1,0 +1,65 @@
+#!/usr/bin/env bash
+# gcbr <target-branch> — make a conflict-resolution branch <current>-<target> with origin/<target> merged in.
+# shellcheck source=SCRIPTDIR/../../../lib/alis.sh
+source "${ALIS_LIB:?run this through alis}"
+
+case "${1:-}" in
+  -h | --help)
+    echo "usage: gcbr <target-branch>"
+    echo "Create (or update) <current>-<target> and merge origin/<target> into it."
+    exit 0
+    ;;
+esac
+
+require_git_repo
+
+target="${1:-}"
+if [ -z "$target" ]; then
+  target="$(prompt "Target branch to merge in:")"
+fi
+[ -n "$target" ] || die "No target branch given."
+
+current="$(git rev-parse --abbrev-ref HEAD)"
+[ "$current" != "HEAD" ] || die "You're in detached HEAD. Check out a branch first."
+[ "$current" != "$target" ] || die "You're already on '$target'."
+new_branch="${current}-${target}"
+
+require_clean_tree
+run git fetch origin || die "git fetch failed."
+git show-ref --verify --quiet "refs/remotes/origin/$target" || die "origin/$target does not exist."
+
+created=0
+if git show-ref --verify --quiet "refs/heads/$new_branch"; then
+  info "Branch '$new_branch' already exists. Checking it out and updating it."
+  run git checkout "$new_branch" || exit 1
+  if git show-ref --verify --quiet "refs/remotes/origin/$new_branch"; then
+    run git pull --no-rebase origin "$new_branch" || exit 1
+  fi
+else
+  info "Creating '$new_branch' from '$current'."
+  run git checkout -b "$new_branch" || exit 1
+  created=1
+fi
+
+info "Merging origin/$target into '$new_branch'…"
+run git pull --no-rebase --no-edit origin "$target"
+pull_status=$?
+echo
+
+if has_conflicts; then
+  warn "Conflicts to resolve (as expected):"
+  git diff --name-only --diff-filter=U | sed 's/^/    /' >&2
+  info "Resolve them, commit, then open a PR from '$new_branch' into '$target'."
+  exit 0
+fi
+[ "$pull_status" -eq 0 ] || die "git pull failed."
+
+success "'$target' merged into '$new_branch' with no conflicts."
+if [ "$created" -eq 1 ]; then
+  warn "A clean merge means you probably didn't need a resolution branch."
+  if confirm "Undo: delete '$new_branch' and go back to '$current'?"; then
+    run git checkout "$current" && run git branch -D "$new_branch" && success "Back on '$current'."
+  else
+    info "Leaving '$new_branch' as is."
+  fi
+fi
