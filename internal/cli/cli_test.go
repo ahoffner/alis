@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -25,6 +26,32 @@ func TestMain(m *testing.M) {
 	code := m.Run()
 	os.RemoveAll(dir)
 	os.Exit(code)
+}
+
+// TestStartupInitIsCheap guards shell startup time: `alis init` runs in every new shell, and
+// Go runs every imported package's init first. Some terminal libraries build Unicode tables
+// there (tcell, go-runewidth >= 0.0.20), which costs 20ms+ on every prompt.
+func TestStartupInitIsCheap(t *testing.T) {
+	cmd := exec.Command(bin, "--version")
+	cmd.Env = append(os.Environ(), "GODEBUG=inittrace=1")
+	out, err := cmd.CombinedOutput()
+	if err != nil {
+		t.Fatalf("%v\n%s", err, out)
+	}
+	// Lines look like: init github.com/mattn/go-runewidth @0.4 ms, 23 ms clock, 9 bytes, 1 allocs
+	for _, line := range strings.Split(string(out), "\n") {
+		f := strings.Fields(line)
+		if len(f) < 7 || f[0] != "init" || f[6] != "clock," {
+			continue
+		}
+		ms, err := strconv.ParseFloat(f[4], 64)
+		if err != nil {
+			continue
+		}
+		if ms > 5 {
+			t.Errorf("package %s takes %.1fms to initialise, slowing every shell startup", f[1], ms)
+		}
+	}
 }
 
 type env struct {
